@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voice Assistant</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100dvh;
+      margin: 0;
+      background: #0f0f0f;
+      color: #eee;
+    }
+    #status {
+      font-size: 1.1rem;
+      margin-bottom: 2rem;
+      opacity: 0.7;
+    }
+    #orb {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: #333;
+      transition: background 0.3s, box-shadow 0.3s;
+      cursor: pointer;
+    }
+    #orb.connected   { background: #1a1a2e; box-shadow: 0 0 30px #4444ff88; }
+    #orb.listening   { background: #1a2e1a; box-shadow: 0 0 40px #44ff4488; }
+    #orb.processing  { background: #2e1a1a; box-shadow: 0 0 40px #ff444488; }
+  </style>
+</head>
+<body>
+  <div id="status">Tap to connect</div>
+  <div id="orb"></div>
+
+  <script>
+    const orb = document.getElementById("orb");
+    const status = document.getElementById("status");
+
+    const WS_URL = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`;
+    const SAMPLE_RATE = 16000;
+
+    let ws, audioCtx, processorNode, sourceNode;
+
+    function setState(state, message) {
+      orb.className = state;
+      status.textContent = message;
+    }
+
+    async function playPCM(arrayBuffer) {
+      const int16 = new Int16Array(arrayBuffer);
+      const float32 = new Float32Array(int16.length);
+      for (let i = 0; i < int16.length; i++) float32[i] = int16[i] / 32768;
+
+      const buffer = audioCtx.createBuffer(1, float32.length, SAMPLE_RATE);
+      buffer.copyToChannel(float32, 0);
+
+      const source = audioCtx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(audioCtx.destination);
+      source.start();
+    }
+
+    async function connect() {
+      audioCtx = new AudioContext({ sampleRate: SAMPLE_RATE });
+      await audioCtx.audioWorklet.addModule("/static/audio-processor.js");
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      sourceNode = audioCtx.createMediaStreamSource(stream);
+      processorNode = new AudioWorkletNode(audioCtx, "audio-processor");
+
+      ws = new WebSocket(WS_URL);
+      ws.binaryType = "arraybuffer";
+
+      ws.onopen = () => {
+        setState("connected", "Listening for wake word…");
+        processorNode.port.onmessage = (e) => {
+          console.log(e)
+          console.log('ws state')
+          console.log(ws.readyState === WebSocket.OPEN)
+          if (ws.readyState === WebSocket.OPEN) ws.send(e.data);
+        };
+        sourceNode.connect(processorNode);
+      };
+
+      ws.onmessage = async (e) => {
+        if (e.data instanceof ArrayBuffer) {
+          await playPCM(e.data);
+        } else {
+          const { event } = JSON.parse(e.data);
+          if (event === "listening")   setState("listening",   "Listening…");
+          if (event === "processing")  setState("processing",  "Thinking…");
+          if (event === "idle")        setState("connected",   "Listening for wake word…");
+        }
+      };
+
+      ws.onclose = () => {
+        setState("", "Disconnected. Tap to reconnect.");
+        sourceNode?.disconnect();
+        processorNode?.disconnect();
+        audioCtx?.close();
+      };
+
+      ws.onerror = () => setState("", "Connection error.");
+    }
+
+    orb.addEventListener("click", () => {
+      if (!ws || ws.readyState === WebSocket.CLOSED) connect();
+    });
+  </script>
+</body>
+</html>

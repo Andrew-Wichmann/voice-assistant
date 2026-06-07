@@ -1,0 +1,17 @@
+wake_word:
+  model: openWakeWord
+  wake_word: hey_jarvis
+  end_word: alexa
+  threshold: 0.5
+
+stt:
+  model: whisper
+  size: base.en
+
+llm:
+  model: ollama
+  name: llama3
+
+tts:
+  model: piper
+  voice: en_US-lessac-medium
