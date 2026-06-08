@@ -9,8 +9,8 @@ stt:
   model_id: openai/whisper-base.en
 
 llm:
-  model: ollama
-  name: llama3.2:3b
+  model: pydantic-ai
+  name: gemma4:e4b
 
 tts:
   model: kokoro

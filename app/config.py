@@ -40,8 +40,14 @@ class OllamaLLMConfig(BaseModel):
     base_url: str = "http://localhost:11434"
 
 
+class PydanticAILLMConfig(BaseModel):
+    model: Literal["pydantic-ai"]
+    name: str
+    base_url: str = "http://localhost:11434"
+
+
 LLMConfig = Annotated[
-    Union[OllamaLLMConfig],
+    Union[OllamaLLMConfig, PydanticAILLMConfig],
     Field(discriminator="model"),
 ]
 
