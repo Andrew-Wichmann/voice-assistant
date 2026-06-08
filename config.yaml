@@ -6,12 +6,16 @@ wake_word:
 
 stt:
   model: whisper
-  size: base.en
+  model_id: openai/whisper-base.en
 
 llm:
   model: ollama
-  name: llama3
+  name: llama3.2:3b
 
 tts:
-  model: piper
-  voice: en_US-lessac-medium
+  model: kokoro
+  voice: af_bella
+  # piper example:
+  # model: piper
+  # voice: en_US-lessac-medium
+  # model_path: voices/piper/en_US-lessac-medium.onnx

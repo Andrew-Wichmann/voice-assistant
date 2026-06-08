@@ -1,12 +1,12 @@
 import asyncio
 import logging
+import re
 from collections.abc import AsyncGenerator
 from enum import Enum, auto
 
 import numpy as np
 
-from app.config import Config
-from app.pipeline import wake, stt, llm, tts
+from app.pipeline import Pipeline
 from app.pipeline.wake import WakeWordDetector
 from app.pipeline.stt import STTEngine
 from app.pipeline.llm import LLMEngine
@@ -27,19 +27,14 @@ class AudioSession:
     # Expects 16kHz mono Int16 PCM from the client
     SAMPLE_RATE = 16_000
 
-    def __init__(self, config: Config):
+    def __init__(self, pipeline: Pipeline):
         self.state = State.IDLE
         self._buffer: list[np.ndarray] = []
 
-        self._wake: WakeWordDetector = wake.create(config.wake_word)
-        self._stt: STTEngine = stt.create(config.stt)
-        self._llm: LLMEngine = llm.create(config.llm)
-        self._tts: TTSEngine = tts.create(config.tts)
-
-    def load(self):
-        self._wake.load()
-        self._stt.load()
-        self._tts.load()
+        self._wake: WakeWordDetector = pipeline.wake_detector
+        self._stt: STTEngine = pipeline.stt_engine
+        self._llm: LLMEngine = pipeline.llm_engine
+        self._tts: TTSEngine = pipeline.tts_engine
 
     async def process_chunk(self, raw: bytes) -> AsyncGenerator[Message, None]:
         audio = np.frombuffer(raw, dtype=np.int16)
@@ -63,10 +58,16 @@ class AudioSession:
         self._buffer = []
 
         transcript = await self._stt.transcribe(utterance)
+        end_word = self._wake.config.end_word
+        transcript = re.sub(rf'\s*{re.escape(end_word)}[.?!]?\s*$', '', transcript, flags=re.IGNORECASE)
+        logger.info(f"transcript: {transcript!r}")
+        if not transcript:
+            logger.warning("No transciption.")
+            self.state = State.IDLE
+            yield {"event": "idle"}
+            return
         response_text = await self._llm.respond(transcript)
-
-        await asyncio.sleep(3)
-
+        logger.info(f"response: {response_text!r}")
         audio_response = await self._tts.synthesize(response_text)
         yield audio_response
 

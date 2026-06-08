@@ -6,18 +6,18 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 from app.config import Config
+from app.pipeline import Pipeline
 from app.session import AudioSession
 
 config = Config()
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
+logging.getLogger("transformers").setLevel(logging.ERROR)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Pre-load models once at startup rather than per connection
-    _session_template = AudioSession(config)
-    _session_template.load()
     app.state.config = config
     yield
 
@@ -34,8 +34,7 @@ async def index():
 @app.websocket("/ws")
 async def audio_stream(websocket: WebSocket):
     await websocket.accept()
-    session = AudioSession(app.state.config)
-    session.load()
+    session = AudioSession(Pipeline.load(app.state.config))
 
     try:
         async for chunk in websocket.iter_bytes():

@@ -2,7 +2,7 @@ import logging
 import numpy as np
 import openwakeword
 
-from app.config import WakeWordConfig
+from app.config import OpenWakeWordConfig
 from app.pipeline.wake import WakeWordDetector
 
 FRAME_SIZE = 1280  # 80ms at 16kHz — minimum chunk size for openwakeword
@@ -10,7 +10,7 @@ FRAME_SIZE = 1280  # 80ms at 16kHz — minimum chunk size for openwakeword
 logger = logging.getLogger(__name__)
 
 class OpenWakeWordDetector(WakeWordDetector):
-    def __init__(self, config: WakeWordConfig):
+    def __init__(self, config: OpenWakeWordConfig):
         super().__init__(config)
         self._model: openwakeword.Model | None = None
         self._buffer = np.array([], dtype=np.int16)

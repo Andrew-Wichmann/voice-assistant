@@ -1,10 +1,10 @@
 import abc
 
-from app.config import LLMConfig
+from app.config import LLMConfig, OllamaLLMConfig
 
 
 class LLMEngine(abc.ABC):
-    def __init__(self, config: LLMConfig):
+    def __init__(self, config: OllamaLLMConfig):
         self.config = config
 
     @abc.abstractmethod
@@ -12,7 +12,7 @@ class LLMEngine(abc.ABC):
 
 
 def create(config: LLMConfig) -> LLMEngine:
-    if config.model == "ollama":
+    if isinstance(config, OllamaLLMConfig):
         from app.pipeline.llm.ollama import OllamaLLM
         return OllamaLLM(config)
-    raise ValueError(f"Unknown LLM model: {config.model!r}")
+    raise ValueError(f"Unknown LLM config: {type(config)!r}")
