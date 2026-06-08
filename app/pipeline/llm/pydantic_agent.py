@@ -5,7 +5,7 @@ from pydantic_ai.providers.ollama import OllamaProvider
 
 from app.config import PydanticAILLMConfig
 from app.pipeline.llm import LLMEngine
-from app.tools.file_retriever import file_retriever
+from app.tools import load_tools
 
 
 class PydanticAILLM(LLMEngine):
@@ -13,7 +13,7 @@ class PydanticAILLM(LLMEngine):
         super().__init__(config)
         provider = OllamaProvider(base_url=f"{config.base_url}/v1")
         model = OllamaModel(config.name, provider=provider)
-        self._agent = Agent(model, tools=[file_retriever])
+        self._agent = Agent(model, tools=load_tools())
         self._history: list[ModelMessage] = []
 
     async def respond(self, text: str) -> str:
