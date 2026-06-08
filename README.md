@@ -9,7 +9,7 @@ Build a personal assistant whose primary interface is voice — always listening
 ## Requirements
 
 ### 1. Voice Interface
-The system MUST use voice as its primary interface. Text-based interfaces MAY exist as secondary or diagnostic surfaces.
+The system MUST use voice as its primary interface. Text-based interfaces MAY exist as secondary or diagnostic surfaces. The screen CAN be on.
 
 ### 2. Available Over the Internet
 The system MUST be reachable over the public internet. Users MUST NOT be required to use a VPN or be on the local network to access it.
@@ -25,9 +25,5 @@ The assistant MUST support calling into domain-limited tools with narrow respons
 
 ## Development Conventions
 
-- Pydantic MUST be preferred over dataclasses for structured data.
+- Pydantic SHOULD be preferred over dataclasses for structured data.
 
-## Requirements
-
-### 6. Hands-Free Operation
-The system MUST NOT require the user to press a button or interact with a UI to begin or end a conversation. Listening MUST begin on a wake word and MUST end on an end word. The screen CAN be on.
